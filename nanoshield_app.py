@@ -99,27 +99,44 @@ if st.button("🚀 Run Analysis"):
 
     st.write("---")
 
-    # -----------------------------
-    # Dose-Response Curve
-    # -----------------------------
-  import matplotlib.pyplot as plt
-import streamlit as st
+if st.button("🚀 Run Analysis"):
+# -----------------------------
+# 📈 Dynamic Dose-Response Curve
+# -----------------------------
+st.subheader("📈 Dose-Response Analysis")
 
-# Example inputs
-strength = st.slider("Strength", 0, 100, 50)
-toxicity = st.slider("Toxicity", 0, 100, 30)
+doses = np.linspace(0.1, 100, 100)
 
-# Create NEW figure every run
+# Use current inputs dynamically
+responses = (concentration / size) * (doses / 10)
+
 fig, ax = plt.subplots()
-
-# Use current values
-materials = ["Strength", "Toxicity"]
-values = [strength, toxicity]
-
-ax.bar(materials, values)
-ax.set_ylim(0, 100)
+ax.plot(doses, responses)
+ax.set_xlabel("Dose (mg/L)")
+ax.set_ylabel("Predicted Toxic Response")
+ax.set_title("Dose vs Toxic Response")
 
 st.pyplot(fig)
+
+# -----------------------------
+# 🧠 Feature Influence
+# -----------------------------
+st.subheader("🧠 Feature Influence Analysis")
+
+# Make influence depend on actual values
+size_impact = (1 / size) * 100
+conc_impact = concentration
+material_impact = tox * 20
+
+features = ["Material Impact", "Size Impact", "Concentration Impact"]
+importance = [material_impact, size_impact, conc_impact]
+
+fig2, ax2 = plt.subplots()
+ax2.bar(features, importance)
+ax2.set_ylabel("Relative Influence")
+ax2.set_title("Feature Contribution to Toxicity")
+
+st.pyplot(fig2)
 
     # -----------------------------
     # Feature Importance (Demo)
@@ -150,4 +167,5 @@ if uploaded_file is not None:
 
     if st.button("Run Bulk Analysis"):
         st.success("Bulk analysis simulated successfully.")
+
 
