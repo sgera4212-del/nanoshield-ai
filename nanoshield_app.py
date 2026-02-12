@@ -102,18 +102,24 @@ if st.button("🚀 Run Analysis"):
     # -----------------------------
     # Dose-Response Curve
     # -----------------------------
-    st.subheader("📈 Dose-Response Curve")
+  import matplotlib.pyplot as plt
+import streamlit as st
 
-    doses = np.linspace(0.1, 100, 100)
-    responses = (concentration / size) * (doses / 20)
+# Example inputs
+strength = st.slider("Strength", 0, 100, 50)
+toxicity = st.slider("Toxicity", 0, 100, 30)
 
-    fig, ax = plt.subplots()
-    ax.plot(doses, responses)
-    ax.set_xlabel("Dose (mg/L)")
-    ax.set_ylabel("Predicted Toxic Response")
-    st.pyplot(fig)
+# Create NEW figure every run
+fig, ax = plt.subplots()
 
-    st.write("---")
+# Use current values
+materials = ["Strength", "Toxicity"]
+values = [strength, toxicity]
+
+ax.bar(materials, values)
+ax.set_ylim(0, 100)
+
+st.pyplot(fig)
 
     # -----------------------------
     # Feature Importance (Demo)
@@ -144,3 +150,4 @@ if uploaded_file is not None:
 
     if st.button("Run Bulk Analysis"):
         st.success("Bulk analysis simulated successfully.")
+
