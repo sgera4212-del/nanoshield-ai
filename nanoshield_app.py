@@ -99,7 +99,7 @@ if st.button("🚀 Run Analysis"):
 
     st.write("---")
 
-if st.button("🚀 Run Analysis", key="run_analysis_btn"):
+if st.button("🚀 Graph Analysis", key="run_analysis_btn"):
 
     # -----------------------------
     # 📈 Dynamic Dose-Response Curve
@@ -166,6 +166,7 @@ if uploaded_file is not None:
 
     if st.button("Run Bulk Analysis"):
         st.success("Bulk analysis simulated successfully.")
+
 
 
 
