@@ -100,43 +100,42 @@ if st.button("🚀 Run Analysis"):
     st.write("---")
 
 if st.button("🚀 Run Analysis"):
-# -----------------------------
-# 📈 Dynamic Dose-Response Curve
-# -----------------------------
-st.subheader("📈 Dose-Response Analysis")
 
-doses = np.linspace(0.1, 100, 100)
+    # -----------------------------
+    # 📈 Dynamic Dose-Response Curve
+    # -----------------------------
+    st.subheader("📈 Dose-Response Analysis")
 
-# Use current inputs dynamically
-responses = (concentration / size) * (doses / 10)
+    doses = np.linspace(0.1, 100, 100)
+    responses = (concentration / size) * (doses / 10)
 
-fig, ax = plt.subplots()
-ax.plot(doses, responses)
-ax.set_xlabel("Dose (mg/L)")
-ax.set_ylabel("Predicted Toxic Response")
-ax.set_title("Dose vs Toxic Response")
+    fig, ax = plt.subplots()
+    ax.plot(doses, responses)
+    ax.set_xlabel("Dose (mg/L)")
+    ax.set_ylabel("Predicted Toxic Response")
+    ax.set_title("Dose vs Toxic Response")
 
-st.pyplot(fig)
+    st.pyplot(fig)
 
-# -----------------------------
-# 🧠 Feature Influence
-# -----------------------------
-st.subheader("🧠 Feature Influence Analysis")
+    # -----------------------------
+    # 🧠 Feature Influence
+    # -----------------------------
+    st.subheader("🧠 Feature Influence Analysis")
 
-# Make influence depend on actual values
-size_impact = (1 / size) * 100
-conc_impact = concentration
-material_impact = tox * 20
+    size_impact = (1 / size) * 100
+    conc_impact = concentration
+    material_impact = tox * 20
 
-features = ["Material Impact", "Size Impact", "Concentration Impact"]
-importance = [material_impact, size_impact, conc_impact]
+    features = ["Material Impact", "Size Impact", "Concentration Impact"]
+    importance = [material_impact, size_impact, conc_impact]
 
-fig2, ax2 = plt.subplots()
-ax2.bar(features, importance)
-ax2.set_ylabel("Relative Influence")
-ax2.set_title("Feature Contribution to Toxicity")
+    fig2, ax2 = plt.subplots()
+    ax2.bar(features, importance)
+    ax2.set_ylabel("Relative Influence")
+    ax2.set_title("Feature Contribution to Toxicity")
 
-st.pyplot(fig2)
+    st.pyplot(fig2)
+
 
     # -----------------------------
     # Feature Importance (Demo)
@@ -167,5 +166,6 @@ if uploaded_file is not None:
 
     if st.button("Run Bulk Analysis"):
         st.success("Bulk analysis simulated successfully.")
+
 
 
