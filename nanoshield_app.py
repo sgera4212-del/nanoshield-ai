@@ -1,173 +1,139 @@
+# ============================================
+# 🧪 NanoShield AI - Nanoparticle Toxicity App
+# ============================================
+
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import time
 import numpy as np
+import matplotlib.pyplot as plt
 
-# -----------------------------
-# Page Configuration
-# -----------------------------
-st.set_page_config(
-    page_title="NanoShield AI",
-    page_icon="🛡️",
-    layout="wide"
-)
+st.set_page_config(page_title="NanoShield AI", layout="centered")
 
-# -----------------------------
-# Dark Tech Blue Theme Styling
-# -----------------------------
-st.markdown("""
-    <style>
-    .stApp {
-        background-color: #0E1A2B;
-        color: white;
-    }
-    h1, h2, h3 {
-        color: #00BFFF;
-    }
-    .stButton>button {
-        background-color: #007ACC;
-        color: white;
-        border-radius: 8px;
-        height: 3em;
-        width: 100%;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.title("🧪 NanoShield AI")
+st.write("AI-powered Nanoparticle Toxicity Prediction & Analysis")
 
-# -----------------------------
-# Title Section
-# -----------------------------
-st.title("🛡️ NanoShield AI")
-st.subheader("AI-Powered Nanotoxicity Risk Assessment System")
+# --------------------------------------------
+# 📂 Upload Dataset (Optional)
+# --------------------------------------------
+uploaded_file = st.file_uploader("Upload Nanoparticle Dataset (CSV)", type=["csv"])
 
-st.write("---")
+toxicity_database = {}
 
-# -----------------------------
-# Sidebar Inputs
-# -----------------------------
-st.sidebar.header("🔬 Input Parameters")
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
 
-material = st.sidebar.selectbox(
-    "Nanoparticle Material",
-    ["Silver", "Gold", "Zinc Oxide", "Titanium Dioxide"]
-)
+    st.success("Dataset Loaded Successfully ✅")
+    st.write("Preview of Dataset:")
+    st.dataframe(df.head())
 
-size = st.sidebar.slider("Particle Size (nm)", 1, 100, 20)
-concentration = st.sidebar.slider("Concentration (mg/L)", 0.1, 100.0, 10.0)
-
-# -----------------------------
-# Simple Prediction Logic
-# -----------------------------
-def predict(material, size, concentration):
-    base_toxicity = {
-        "Silver": 0.8,
-        "Gold": 0.3,
-        "Zinc Oxide": 0.6,
-        "Titanium Dioxide": 0.4
-    }
-
-    toxicity = base_toxicity[material] * (concentration / 10) * (50 / size)
-
-    if toxicity > 2:
-        risk = "High Risk"
-    elif toxicity > 1:
-        risk = "Moderate Risk"
+    # Auto-generate toxicity database if dataset contains required columns
+    required_cols = {"Material", "Toxicity"}
+    if required_cols.issubset(df.columns):
+        toxicity_database = (
+            df.groupby("Material")["Toxicity"]
+            .mean()
+            .to_dict()
+        )
     else:
-        risk = "Low Risk"
+        st.warning("Dataset must contain 'Material' and 'Toxicity' columns to auto-learn toxicity.")
 
-    return round(toxicity, 2), risk
+# --------------------------------------------
+# 🎛 User Inputs
+# --------------------------------------------
+st.subheader("🔬 Input Nanoparticle Parameters")
 
-# -----------------------------
-# Run Analysis Button
-# -----------------------------
-if st.button("🚀 Run Analysis"):
+material = st.text_input("Material Type", "Gold")
+size = st.number_input("Particle Size (nm)", min_value=1.0, value=50.0)
+concentration = st.number_input("Concentration (µg/mL)", min_value=0.0, value=10.0)
 
-    with st.spinner("NanoShield AI is analyzing nanoparticle exposure patterns..."):
-        time.sleep(1.5)
-        tox, risk = predict(material, size, concentration)
+# --------------------------------------------
+# 🚀 Run Analysis Button
+# --------------------------------------------
+run = st.button("🚀 Run Analysis", key="run_analysis_btn")
 
-    st.success("Analysis Complete ✅")
+if run:
 
-    col1, col2 = st.columns(2)
+    # --------------------------------------------
+    # 🧠 Toxicity Calculation (Professional Logic)
+    # --------------------------------------------
 
-    with col1:
-        st.metric("Toxicity Score", tox)
+    # Default fallback toxicity
+    default_tox = 0.5
 
-    with col2:
-        st.metric("Risk Level", risk)
+    # Use dataset-learned value if available
+    tox = toxicity_database.get(material, default_tox)
 
-    st.write("---")
+    # Adjust toxicity slightly based on size & concentration
+    size_factor = (1 / size) * 10 if size > 0 else 0
+    conc_factor = concentration * 0.01
 
-if st.button("🚀 Graph Analysis", key="run_analysis_btn"):
+    final_toxicity = tox + size_factor + conc_factor
 
-    # -----------------------------
-    # 📈 Dynamic Dose-Response Curve
-    # -----------------------------
+    # Normalize between 0 and 1
+    final_toxicity = max(0, min(final_toxicity, 1))
+
+    st.subheader("🧪 Predicted Toxicity Score")
+    st.metric("Toxicity Level (0 - 1)", round(final_toxicity, 3))
+
+    # --------------------------------------------
+    # 📈 Dose-Response Analysis
+    # --------------------------------------------
     st.subheader("📈 Dose-Response Analysis")
 
-    doses = np.linspace(0.1, 100, 100)
-    responses = (concentration / size) * (doses / 10)
+    dose_range = np.linspace(0, concentration * 2, 50)
+    response = final_toxicity * (dose_range / (concentration + 1))
 
-    fig, ax = plt.subplots()
-    ax.plot(doses, responses)
-    ax.set_xlabel("Dose (mg/L)")
-    ax.set_ylabel("Predicted Toxic Response")
-    ax.set_title("Dose vs Toxic Response")
+    fig1, ax1 = plt.subplots()
+    ax1.plot(dose_range, response)
+    ax1.set_xlabel("Concentration (µg/mL)")
+    ax1.set_ylabel("Toxic Response")
+    ax1.set_title("Dose-Response Curve")
 
-    st.pyplot(fig)
+    st.pyplot(fig1)
 
-    # -----------------------------
-    # 🧠 Feature Influence
-    # -----------------------------
+    # --------------------------------------------
+    # 🧠 Feature Influence Analysis
+    # --------------------------------------------
     st.subheader("🧠 Feature Influence Analysis")
 
-    size_impact = (1 / size) * 100
-    conc_impact = concentration
     material_impact = tox * 20
+    size_impact = (1 / size) * 100 if size > 0 else 0
+    conc_impact = concentration
 
-    features = ["Material Impact", "Size Impact", "Concentration Impact"]
-    importance = [material_impact, size_impact, conc_impact]
+    total_impact = material_impact + size_impact + conc_impact
 
-    fig2, ax2 = plt.subplots()
-    ax2.bar(features, importance)
-    ax2.set_ylabel("Relative Influence")
-    ax2.set_title("Feature Contribution to Toxicity")
-
-    st.pyplot(fig2)
-
-
-    # -----------------------------
-    # Feature Importance (Demo)
-    # -----------------------------
-    st.subheader("🧠 Feature Influence")
+    if total_impact > 0:
+        importance = [
+            (material_impact / total_impact) * 100,
+            (size_impact / total_impact) * 100,
+            (conc_impact / total_impact) * 100
+        ]
+    else:
+        importance = [0, 0, 0]
 
     features = ["Material Type", "Particle Size", "Concentration"]
-    importance = [40, 30, 30]
 
     fig2, ax2 = plt.subplots()
     ax2.bar(features, importance)
     ax2.set_ylabel("Influence (%)")
+    ax2.set_title("Relative Feature Contribution")
+
     st.pyplot(fig2)
 
-# -----------------------------
-# CSV Upload Section
-# -----------------------------
-st.write("---")
-st.subheader("📂 Upload CSV for Bulk Analysis")
+    # --------------------------------------------
+    # 📊 Risk Interpretation
+    # --------------------------------------------
+    st.subheader("⚠ Risk Interpretation")
 
-uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+    if final_toxicity < 0.3:
+        st.success("Low Toxicity Risk 🟢")
+    elif final_toxicity < 0.7:
+        st.warning("Moderate Toxicity Risk 🟡")
+    else:
+        st.error("High Toxicity Risk 🔴")
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-
-    st.write("Preview of Uploaded Data:")
-    st.dataframe(df)
-
-    if st.button("Run Bulk Analysis"):
-        st.success("Bulk analysis simulated successfully.")
-
-
-
-
-
+# --------------------------------------------
+# Footer
+# --------------------------------------------
+st.markdown("---")
+st.caption("NanoShield AI © 2026 | Research Prototype")
