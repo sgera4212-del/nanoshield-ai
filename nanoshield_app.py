@@ -1,139 +1,133 @@
 # ============================================
-# 🧪 NanoShield AI - Nanoparticle Toxicity App
+# 🧪 NanoShield AI - ML Version
 # ============================================
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 
 st.set_page_config(page_title="NanoShield AI", layout="centered")
 
-st.title("🧪 NanoShield AI")
-st.write("AI-powered Nanoparticle Toxicity Prediction & Analysis")
+st.title("🧪 NanoShield AI (ML-Powered)")
+st.write("Machine Learning-Based Nanoparticle Toxicity Prediction")
 
 # --------------------------------------------
-# 📂 Upload Dataset (Optional)
+# Upload Dataset
 # --------------------------------------------
 uploaded_file = st.file_uploader("Upload Nanoparticle Dataset (CSV)", type=["csv"])
 
-toxicity_database = {}
-
 if uploaded_file:
+
     df = pd.read_csv(uploaded_file)
 
     st.success("Dataset Loaded Successfully ✅")
-    st.write("Preview of Dataset:")
     st.dataframe(df.head())
 
-    # Auto-generate toxicity database if dataset contains required columns
-    required_cols = {"Material", "Toxicity"}
-    if required_cols.issubset(df.columns):
-        toxicity_database = (
-            df.groupby("Material")["Toxicity"]
-            .mean()
-            .to_dict()
-        )
-    else:
-        st.warning("Dataset must contain 'Material' and 'Toxicity' columns to auto-learn toxicity.")
+    # Ensure required columns exist
+    required_cols = {"Material", "Size", "Concentration", "Toxicity"}
 
-# --------------------------------------------
-# 🎛 User Inputs
-# --------------------------------------------
-st.subheader("🔬 Input Nanoparticle Parameters")
-
-material = st.text_input("Material Type", "Gold")
-size = st.number_input("Particle Size (nm)", min_value=1.0, value=50.0)
-concentration = st.number_input("Concentration (µg/mL)", min_value=0.0, value=10.0)
-
-# --------------------------------------------
-# 🚀 Run Analysis Button
-# --------------------------------------------
-run = st.button("🚀 Run Analysis", key="run_analysis_btn")
-
-if run:
+    if not required_cols.issubset(df.columns):
+        st.error("Dataset must contain: Material, Size, Concentration, Toxicity")
+        st.stop()
 
     # --------------------------------------------
-    # 🧠 Toxicity Calculation (Professional Logic)
+    # ML MODEL TRAINING
     # --------------------------------------------
 
-    # Default fallback toxicity
-    default_tox = 0.5
+    X = df[["Material", "Size", "Concentration"]]
+    y = df["Toxicity"]
 
-    # Use dataset-learned value if available
-    tox = toxicity_database.get(material, default_tox)
+    # Encode material column
+    categorical_features = ["Material"]
+    numeric_features = ["Size", "Concentration"]
 
-    # Adjust toxicity slightly based on size & concentration
-    size_factor = (1 / size) * 10 if size > 0 else 0
-    conc_factor = concentration * 0.01
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features)
+        ],
+        remainder="passthrough"
+    )
 
-    final_toxicity = tox + size_factor + conc_factor
+    model = Pipeline(steps=[
+        ("preprocessor", preprocessor),
+        ("regressor", LinearRegression())
+    ])
 
-    # Normalize between 0 and 1
-    final_toxicity = max(0, min(final_toxicity, 1))
+    model.fit(X, y)
 
-    st.subheader("🧪 Predicted Toxicity Score")
-    st.metric("Toxicity Level (0 - 1)", round(final_toxicity, 3))
-
-    # --------------------------------------------
-    # 📈 Dose-Response Analysis
-    # --------------------------------------------
-    st.subheader("📈 Dose-Response Analysis")
-
-    dose_range = np.linspace(0, concentration * 2, 50)
-    response = final_toxicity * (dose_range / (concentration + 1))
-
-    fig1, ax1 = plt.subplots()
-    ax1.plot(dose_range, response)
-    ax1.set_xlabel("Concentration (µg/mL)")
-    ax1.set_ylabel("Toxic Response")
-    ax1.set_title("Dose-Response Curve")
-
-    st.pyplot(fig1)
+    st.success("ML Model Trained Successfully 🤖")
 
     # --------------------------------------------
-    # 🧠 Feature Influence Analysis
+    # USER INPUT
     # --------------------------------------------
-    st.subheader("🧠 Feature Influence Analysis")
+    st.subheader("🔬 Enter Nanoparticle Parameters")
 
-    material_impact = tox * 20
-    size_impact = (1 / size) * 100 if size > 0 else 0
-    conc_impact = concentration
+    material = st.text_input("Material Type", "Gold")
+    size = st.number_input("Particle Size (nm)", min_value=1.0, value=50.0)
+    concentration = st.number_input("Concentration (µg/mL)", min_value=0.0, value=10.0)
 
-    total_impact = material_impact + size_impact + conc_impact
+    run = st.button("🚀 Predict Toxicity")
 
-    if total_impact > 0:
-        importance = [
-            (material_impact / total_impact) * 100,
-            (size_impact / total_impact) * 100,
-            (conc_impact / total_impact) * 100
-        ]
-    else:
-        importance = [0, 0, 0]
+    if run:
 
-    features = ["Material Type", "Particle Size", "Concentration"]
+        input_data = pd.DataFrame({
+            "Material": [material],
+            "Size": [size],
+            "Concentration": [concentration]
+        })
 
-    fig2, ax2 = plt.subplots()
-    ax2.bar(features, importance)
-    ax2.set_ylabel("Influence (%)")
-    ax2.set_title("Relative Feature Contribution")
+        prediction = model.predict(input_data)[0]
 
-    st.pyplot(fig2)
+        # Clamp between 0 and 1
+        prediction = max(0, min(prediction, 1))
 
-    # --------------------------------------------
-    # 📊 Risk Interpretation
-    # --------------------------------------------
-    st.subheader("⚠ Risk Interpretation")
+        st.subheader("🧪 Predicted Toxicity Score")
+        st.metric("Toxicity Level (0 - 1)", round(prediction, 3))
 
-    if final_toxicity < 0.3:
-        st.success("Low Toxicity Risk 🟢")
-    elif final_toxicity < 0.7:
-        st.warning("Moderate Toxicity Risk 🟡")
-    else:
-        st.error("High Toxicity Risk 🔴")
+        # --------------------------------------------
+        # Dose-Response Curve
+        # --------------------------------------------
+        st.subheader("📈 Dose-Response Analysis")
 
-# --------------------------------------------
-# Footer
-# --------------------------------------------
+        dose_range = np.linspace(0, concentration * 2, 50)
+        response = prediction * (dose_range / (concentration + 1))
+
+        fig1, ax1 = plt.subplots()
+        ax1.plot(dose_range, response)
+        ax1.set_xlabel("Concentration (µg/mL)")
+        ax1.set_ylabel("Toxic Response")
+        ax1.set_title("Dose-Response Curve")
+
+        st.pyplot(fig1)
+
+        # --------------------------------------------
+        # Feature Influence (Coefficient-Based)
+        # --------------------------------------------
+        st.subheader("🧠 Feature Influence")
+
+        # Extract regression coefficients
+        reg = model.named_steps["regressor"]
+        coefficients = reg.coef_
+
+        importance = np.abs(coefficients)
+        importance = importance / importance.sum() * 100
+
+        fig2, ax2 = plt.subplots()
+        ax2.bar(range(len(importance)), importance)
+        ax2.set_ylabel("Influence (%)")
+        ax2.set_title("Model Feature Importance")
+
+        st.pyplot(fig2)
+
+else:
+    st.info("Upload a dataset to begin.")
+
 st.markdown("---")
-st.caption("NanoShield AI © 2026 | Research Prototype")
+st.caption("NanoShield AI ML Prototype © 2026")
+
+
