@@ -1,4 +1,4 @@
-if st.button("Analyze Risk"):
+    if st.button("Analyze Risk"):
 
         input_df = pd.DataFrame({
             "Material": [material],
@@ -75,4 +75,3 @@ if st.button("Analyze Risk"):
         ax.set_title("Model Validation")
 
         st.pyplot(fig)
-
