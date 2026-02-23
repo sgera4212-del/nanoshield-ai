@@ -1,3 +1,27 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score, mean_absolute_error
+
+st.set_page_config(page_title="NanoShield AI 2.0", layout="wide")
+
+st.title("🚀 NanoShield AI 2.0")
+
+uploaded_file = st.file_uploader("Upload Nanotoxicity Dataset (CSV)", type=["csv"])
+
+if uploaded_file:
+
+    df = pd.read_csv(uploaded_file)
+
+    st.write("Dataset Loaded Successfully")
 if uploaded_file:
 
     # everything inside here must be indented
@@ -84,4 +108,5 @@ if uploaded_file:
         ax.set_title("Model Validation")
 
         st.pyplot(fig)
+
 
