@@ -21,19 +21,69 @@ if uploaded_file:
 
     df = pd.read_csv(uploaded_file)
 
-    st.write("Dataset Loaded Successfully")
+    required_cols = {"Material", "Size_nm", "Concentration_ug_per_mL", "Toxicity"}
 
-if uploaded_file:
+    if not required_cols.issubset(df.columns):
+        st.error("Dataset must contain: Material, Size_nm, Concentration_ug_per_mL, Toxicity")
+        st.stop()
 
-    # everything inside here must be indented
+    st.success("Dataset Loaded Successfully")
 
+    # ---------------------------
+    # Feature Engineering
+    # ---------------------------
+    df["Inv_Size"] = 1 / df["Size_nm"]
+    df["Log_Conc"] = np.log1p(df["Concentration_ug_per_mL"])
+
+    X = df[["Material", "Size_nm", "Concentration_ug_per_mL", "Inv_Size", "Log_Conc"]]
+    y = df["Toxicity"]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", OneHotEncoder(handle_unknown="ignore"), ["Material"])
+        ],
+        remainder="passthrough"
+    )
+
+    models = {
+        "Linear Regression": LinearRegression(),
+        "Random Forest": RandomForestRegressor(n_estimators=200, random_state=42)
+    }
+
+    results = {}
+
+    for name, model in models.items():
+        pipe = Pipeline([
+            ("preprocessor", preprocessor),
+            ("model", model)
+        ])
+
+        pipe.fit(X_train, y_train)
+        preds = pipe.predict(X_test)
+
+        r2 = r2_score(y_test, preds)
+        results[name] = (pipe, r2)
+
+    # Select Best Model
+    best_model_name = max(results, key=lambda x: results[x][1])
+    best_model = results[best_model_name][0]
+
+    st.success(f"🏆 Best Performing Model: {best_model_name}")
+
+    # ---------------------------
+    # Prediction Section
+    # ---------------------------
     st.subheader("🔬 Design Nanoparticle & Predict Risk")
 
     material = st.selectbox("Material", df["Material"].unique())
     size = st.slider("Particle Size (nm)", 5.0, 100.0, 50.0)
     concentration = st.slider("Concentration (µg/mL)", 1.0, 100.0, 20.0)
 
-if st.button("Analyze Risk"):
+    if st.button("Analyze Risk"):
 
         input_df = pd.DataFrame({
             "Material": [material],
@@ -46,15 +96,13 @@ if st.button("Analyze Risk"):
         prediction = best_model.predict(input_df)[0]
         prediction = np.clip(prediction, 0, 1)
 
-        st.metric("Predicted Toxicity Score", round(prediction,3))
-        # ----------------------------
-        # Risk Classification
-        # ----------------------------
- if prediction < 0.3:
-            risk_level = "LOW"
-            st.success("🟢 LOW RISK")
-            st.write("Recommended for preliminary development.")
+        st.metric("Predicted Toxicity Score", round(prediction, 3))
 
+        # ----------------------------
+        # Risk Classification + Application Pathway
+        # ----------------------------
+        if prediction < 0.3:
+            st.success("🟢 LOW RISK")
             application = """
             ✅ Suggested Application Pathways:
             • Biomedical coatings  
@@ -64,10 +112,7 @@ if st.button("Analyze Risk"):
             """
 
         elif prediction < 0.6:
-            risk_level = "MODERATE"
             st.warning("🟡 MODERATE RISK")
-            st.write("Requires controlled experimental validation.")
-
             application = """
             ⚠ Suggested Application Pathways:
             • Antimicrobial surface coatings  
@@ -77,28 +122,22 @@ if st.button("Analyze Risk"):
             """
 
         else:
-            risk_level = "HIGH"
             st.error("🔴 HIGH RISK")
-            st.write("Not recommended without safety modification.")
-
             application = """
             🚫 Suggested Application Pathways:
             • Industrial catalysis  
-            • Environmental remediation (non-biological)  
+            • Environmental remediation  
             • External coatings with limited exposure  
             • Restricted laboratory research use  
             """
 
-        # ----------------------------
-        # Display Application Pathways
-        # ----------------------------
         st.subheader("🏥 Recommended Application Pathways")
         st.markdown(application)
 
         # ----------------------------
-        # Visualization
+        # Model Validation Plot
         # ----------------------------
-        st.subheader("📈 Actual vs Predicted (Best Model)")
+        st.subheader("📈 Model Validation")
 
         test_preds = best_model.predict(X_test)
 
@@ -106,9 +145,9 @@ if st.button("Analyze Risk"):
         ax.scatter(y_test, test_preds)
         ax.set_xlabel("Actual Toxicity")
         ax.set_ylabel("Predicted Toxicity")
-        ax.set_title("Model Validation")
+        ax.set_title("Actual vs Predicted")
 
         st.pyplot(fig)
 
-
-
+else:
+    st.info("Upload dataset to begin.")
