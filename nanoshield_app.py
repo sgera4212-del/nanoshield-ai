@@ -1,146 +1,189 @@
-# ============================================
-# 🚀 NanoShield AI 2.0
-# AI-Driven Nanomaterial Risk Screening System
-# ============================================
+# ============================================================
+# NanoShield AI - FINAL COMPLETE VERSION
+# ML + Hybrid + Aggregation + R² + 3D + CSV
+# ============================================================
 
-import streamlit as st
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.metrics import r2_score
+from mpl_toolkits.mplot3d import Axes3D
 
-st.set_page_config(page_title="NanoShield AI 2.0", layout="wide")
+# ------------------------------------------------
+# 1. MATERIAL DATABASE (Intrinsic Toxicity Factor)
+# ------------------------------------------------
+materials_db = {
+    "silver": 1.3,
+    "tio2": 0.8,
+    "zno": 1.1,
+    "gold": 0.6
+}
 
-st.title("🚀 NanoShield AI 2.0")
-st.subheader("AI-Powered Nanomaterial Risk Screening System")
+# ------------------------------------------------
+# 2. GENERATE TRAINING DATA
+# ------------------------------------------------
+def generate_training_data():
+    X = []
+    y = []
+    for coeff in materials_db.values():
+        for size in range(10, 101, 10):
+            for conc in range(10, 101, 10):
+                toxicity = coeff * (100/size) * conc
+                X.append([coeff, size, conc])
+                y.append(toxicity)
+    return np.array(X), np.array(y)
 
-uploaded_file = st.file_uploader("Upload Nanotoxicity Dataset (CSV)", type=["csv"])
+X_train, y_train = generate_training_data()
 
-if uploaded_file:
+# ------------------------------------------------
+# 3. TRAIN ML MODEL
+# ------------------------------------------------
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-    df = pd.read_csv(uploaded_file)
+r2 = r2_score(y_train, model.predict(X_train))
 
-    required_cols = {"Material", "Size_nm", "Concentration_ug_per_mL", "Toxicity"}
+print("===== NanoShield AI - FINAL SYSTEM =====")
+print("Model R² Score:", round(r2, 4))
+print()
 
-    if not required_cols.issubset(df.columns):
-        st.error("Dataset must contain: Material, Size_nm, Concentration_ug_per_mL, Toxicity")
-        st.stop()
+# ------------------------------------------------
+# 4. SAFE ML PREDICTION FUNCTION
+# ------------------------------------------------
+def predict_toxicity(material, size_nm, concentration):
+    coeff = materials_db.get(material.lower(), 1.0)
+    
+    size_arr = np.array(size_nm, ndmin=1)
+    conc_arr = np.array(concentration, ndmin=1)
 
-    # ---------------------------
-    # Feature Engineering
-    # ---------------------------
-    df["Inv_Size"] = 1 / df["Size_nm"]
-    df["Log_Conc"] = np.log1p(df["Concentration_ug_per_mL"])
+    if size_arr.size == 1 and conc_arr.size > 1:
+        size_arr = np.full(conc_arr.shape, size_arr[0])
+    if conc_arr.size == 1 and size_arr.size > 1:
+        conc_arr = np.full(size_arr.shape, conc_arr[0])
+        
+    coeff_arr = np.full(size_arr.shape, coeff)
+    features = np.column_stack((coeff_arr, size_arr, conc_arr))
 
-    X = df[["Material", "Size_nm", "Concentration_ug_per_mL", "Inv_Size", "Log_Conc"]]
-    y = df["Toxicity"]
+    return model.predict(features)
 
-    # ---------------------------
-    # Train-Test Split
-    # ---------------------------
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+# ------------------------------------------------
+# 5. HYBRID TOXICITY MODEL
+# ------------------------------------------------
+def hybrid_toxicity(matA, sizeA, matB, sizeB, total_conc, ratio_A):
+    ratio_B = 1 - ratio_A
+    
+    conc_A = np.array(total_conc) * ratio_A
+    conc_B = np.array(total_conc) * ratio_B
+    
+    T1 = predict_toxicity(matA, sizeA, conc_A)
+    T2 = predict_toxicity(matB, sizeB, conc_B)
+    
+    return (ratio_A * T1) + (ratio_B * T2)
 
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("cat", OneHotEncoder(handle_unknown="ignore"), ["Material"])
-        ],
-        remainder="passthrough"
-    )
+# ------------------------------------------------
+# 6. PARTICLE AGGREGATION EFFECT
+# ------------------------------------------------
+def particle_aggregation_adjustment(toxicity, concentration):
+    toxicity = np.array(toxicity)
+    concentration = np.array(concentration, ndmin=1)
 
-    models = {
-        "Linear Regression": LinearRegression(),
-        "Random Forest": RandomForestRegressor(n_estimators=200, random_state=42)
-    }
+    if concentration.size == 1:
+        if concentration[0] > 60:
+            toxicity *= 0.85
+    else:
+        toxicity[concentration > 60] *= 0.85
+        
+    return toxicity
 
-    results = {}
+# ------------------------------------------------
+# 7. BIOLOGICAL DECISION SYSTEM
+# ------------------------------------------------
+def cell_aggregation_risk(score):
+    if score < 30:
+        return "Low"
+    elif score < 70:
+        return "Moderate"
+    else:
+        return "High"
 
-    st.subheader("📊 Model Comparison")
+def application_pathway(score):
+    if score < 30:
+        return "Biomedical / Cosmetic Use"
+    elif score < 70:
+        return "Antimicrobial / Therapeutic Use"
+    else:
+        return "Industrial / Restricted Use"
 
-    for name, model in models.items():
+# ------------------------------------------------
+# 8. DEMO HYBRID SYSTEM
+# ------------------------------------------------
+matA = "silver"
+sizeA = 20
+matB = "tio2"
+sizeB = 80
+ratio_A = 0.6
+total_conc = 50
 
-        pipe = Pipeline([
-            ("preprocessor", preprocessor),
-            ("model", model)
-        ])
+tox_value = hybrid_toxicity(matA, sizeA, matB, sizeB, total_conc, ratio_A)
+tox_value = particle_aggregation_adjustment(tox_value, total_conc)[0]
 
-        pipe.fit(X_train, y_train)
-        preds = pipe.predict(X_test)
+print("Hybrid System: 60% Silver (20nm) + 40% TiO2 (80nm)")
+print("Predicted Toxicity:", round(tox_value, 2))
+print("Cell Aggregation Risk:", cell_aggregation_risk(tox_value))
+print("Recommended Application:", application_pathway(tox_value))
+print()
 
-        r2 = r2_score(y_test, preds)
-        mae = mean_absolute_error(y_test, preds)
+# ------------------------------------------------
+# 9. GRAPH 1 - Toxicity vs Concentration
+# ------------------------------------------------
+conc_range = np.linspace(10, 100, 50)
 
-        results[name] = (pipe, r2, mae)
+tox_curve = hybrid_toxicity(matA, sizeA, matB, sizeB, conc_range, ratio_A)
+tox_curve = particle_aggregation_adjustment(tox_curve, conc_range)
 
-        st.write(f"### {name}")
-        st.write(f"R² Score: {round(r2,3)}")
-        st.write(f"MAE: {round(mae,3)}")
+plt.figure()
+plt.plot(conc_range, tox_curve)
+plt.xlabel("Concentration (µg/mL)")
+plt.ylabel("Predicted Toxicity Score")
+plt.title("Hybrid Toxicity vs Concentration")
+plt.show()
 
-    # Select best model
-    best_model_name = max(results, key=lambda x: results[x][1])
-    best_model = results[best_model_name][0]
+# ------------------------------------------------
+# 10. GRAPH 2 - 3D SURFACE (Size vs Conc vs Toxicity)
+# ------------------------------------------------
+size_range = np.linspace(10, 100, 30)
+conc_range_3d = np.linspace(10, 100, 30)
 
-    st.success(f"🏆 Best Performing Model: {best_model_name}")
+size_mesh, conc_mesh = np.meshgrid(size_range, conc_range_3d)
 
-    # ---------------------------
-    # Prediction Section
-    # ---------------------------
-    st.subheader("🔬 Design Nanoparticle & Predict Risk")
+tox_mesh = predict_toxicity("silver",
+                            size_mesh.flatten(),
+                            conc_mesh.flatten())
 
-    material = st.selectbox("Material", df["Material"].unique())
-    size = st.slider("Particle Size (nm)", 5.0, 100.0, 50.0)
-    concentration = st.slider("Concentration (µg/mL)", 1.0, 100.0, 20.0)
+tox_mesh = tox_mesh.reshape(size_mesh.shape)
 
-    if st.button("Analyze Risk"):
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(size_mesh, conc_mesh, tox_mesh)
 
-        input_df = pd.DataFrame({
-            "Material": [material],
-            "Size_nm": [size],
-            "Concentration_ug_per_mL": [concentration],
-            "Inv_Size": [1/size],
-            "Log_Conc": [np.log1p(concentration)]
-        })
+ax.set_xlabel("Particle Size (nm)")
+ax.set_ylabel("Concentration (µg/mL)")
+ax.set_zlabel("Toxicity Score")
+ax.set_title("3D Toxicity Surface (Silver Nanoparticles)")
 
-        prediction = best_model.predict(input_df)[0]
-        prediction = np.clip(prediction, 0, 1)
+plt.show()
 
-        st.metric("Predicted Toxicity Score", round(prediction,3))
+# ------------------------------------------------
+# 11. EXPORT CSV REPORT
+# ------------------------------------------------
+output_df = pd.DataFrame({
+    "Concentration": conc_range,
+    "Predicted_Toxicity": tox_curve
+})
 
-        # Risk Classification
-        if prediction < 0.3:
-            st.success("🟢 LOW RISK")
-            st.write("Recommended for preliminary development.")
-        elif prediction < 0.6:
-            st.warning("🟡 MODERATE RISK")
-            st.write("Requires controlled experimental validation.")
-        else:
-            st.error("🔴 HIGH RISK")
-            st.write("Not recommended without safety modification.")
+output_df.to_csv("NanoShield_AI_Output.csv", index=False)
 
-        # Visualization
-        st.subheader("📈 Actual vs Predicted (Best Model)")
+print("CSV File Generated: NanoShield_AI_Output.csv")
 
-        test_preds = best_model.predict(X_test)
-
-        fig, ax = plt.subplots()
-        ax.scatter(y_test, test_preds)
-        ax.set_xlabel("Actual Toxicity")
-        ax.set_ylabel("Predicted Toxicity")
-        ax.set_title("Model Validation")
-
-        st.pyplot(fig)
-
-else:
-    st.info("Upload dataset to begin.")
-
-st.markdown("---")
-st.caption("NanoShield AI 2.0 | University Science Fiesta Edition")
 
