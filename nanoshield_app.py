@@ -1,3 +1,13 @@
+if uploaded_file:
+
+    # everything inside here must be indented
+
+    st.subheader("🔬 Design Nanoparticle & Predict Risk")
+
+    material = st.selectbox("Material", df["Material"].unique())
+    size = st.slider("Particle Size (nm)", 5.0, 100.0, 50.0)
+    concentration = st.slider("Concentration (µg/mL)", 1.0, 100.0, 20.0)
+
     if st.button("Analyze Risk"):
 
         input_df = pd.DataFrame({
@@ -12,7 +22,6 @@
         prediction = np.clip(prediction, 0, 1)
 
         st.metric("Predicted Toxicity Score", round(prediction,3))
-
         # ----------------------------
         # Risk Classification
         # ----------------------------
@@ -75,3 +84,4 @@
         ax.set_title("Model Validation")
 
         st.pyplot(fig)
+
