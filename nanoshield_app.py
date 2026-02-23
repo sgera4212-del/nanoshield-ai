@@ -22,6 +22,7 @@ if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
     st.write("Dataset Loaded Successfully")
+
 if uploaded_file:
 
     # everything inside here must be indented
@@ -32,7 +33,7 @@ if uploaded_file:
     size = st.slider("Particle Size (nm)", 5.0, 100.0, 50.0)
     concentration = st.slider("Concentration (µg/mL)", 1.0, 100.0, 20.0)
 
-    if st.button("Analyze Risk"):
+if st.button("Analyze Risk"):
 
         input_df = pd.DataFrame({
             "Material": [material],
@@ -49,7 +50,7 @@ if uploaded_file:
         # ----------------------------
         # Risk Classification
         # ----------------------------
-        if prediction < 0.3:
+ if prediction < 0.3:
             risk_level = "LOW"
             st.success("🟢 LOW RISK")
             st.write("Recommended for preliminary development.")
@@ -108,5 +109,6 @@ if uploaded_file:
         ax.set_title("Model Validation")
 
         st.pyplot(fig)
+
 
 
