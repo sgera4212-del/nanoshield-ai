@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -30,12 +30,27 @@ if uploaded_file:
     st.success("Dataset Loaded Successfully")
 
     # ---------------------------
-    # Feature Engineering
+    # Feature Engineering (Upgraded)
     # ---------------------------
     df["Inv_Size"] = 1 / df["Size_nm"]
     df["Log_Conc"] = np.log1p(df["Concentration_ug_per_mL"])
+    df["Size_Conc_Interaction"] = df["Size_nm"] * df["Concentration_ug_per_mL"]
+    df["Size_Squared"] = df["Size_nm"] ** 2
+    df["Conc_Squared"] = df["Concentration_ug_per_mL"] ** 2
 
-    X = df[["Material", "Size_nm", "Concentration_ug_per_mL", "Inv_Size", "Log_Conc"]]
+    X = df[
+        [
+            "Material",
+            "Size_nm",
+            "Concentration_ug_per_mL",
+            "Inv_Size",
+            "Log_Conc",
+            "Size_Conc_Interaction",
+            "Size_Squared",
+            "Conc_Squared",
+        ]
+    ]
+
     y = df["Toxicity"]
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -51,7 +66,19 @@ if uploaded_file:
 
     models = {
         "Linear Regression": LinearRegression(),
-        "Random Forest": RandomForestRegressor(n_estimators=200, random_state=42)
+        "Random Forest": RandomForestRegressor(
+            n_estimators=500,
+            max_depth=12,
+            min_samples_split=4,
+            min_samples_leaf=2,
+            random_state=42
+        ),
+        "Gradient Boosting": GradientBoostingRegressor(
+            n_estimators=400,
+            learning_rate=0.05,
+            max_depth=4,
+            random_state=42
+        ),
     }
 
     results = {}
@@ -90,7 +117,10 @@ if uploaded_file:
             "Size_nm": [size],
             "Concentration_ug_per_mL": [concentration],
             "Inv_Size": [1/size],
-            "Log_Conc": [np.log1p(concentration)]
+            "Log_Conc": [np.log1p(concentration)],
+            "Size_Conc_Interaction": [size * concentration],
+            "Size_Squared": [size ** 2],
+            "Conc_Squared": [concentration ** 2]
         })
 
         prediction = best_model.predict(input_df)[0]
@@ -98,37 +128,32 @@ if uploaded_file:
 
         st.metric("Predicted Toxicity Score", round(prediction, 3))
 
-        # ----------------------------
-        # Risk Classification + Application Pathway
-        # ----------------------------
+        # Risk Classification
         if prediction < 0.3:
             st.success("🟢 LOW RISK")
             application = """
-            ✅ Suggested Application Pathways:
+            ✅ Suggested Applications:
             • Biomedical coatings  
-            • Cosmetic formulations  
             • Drug delivery systems  
-            • Tissue engineering scaffolds  
+            • Cosmetic formulations  
             """
 
         elif prediction < 0.6:
             st.warning("🟡 MODERATE RISK")
             application = """
-            ⚠ Suggested Application Pathways:
-            • Antimicrobial surface coatings  
+            ⚠ Suggested Applications:
+            • Antimicrobial coatings  
             • Wound healing materials  
-            • Water purification systems  
-            • Controlled therapeutic formulations  
+            • Controlled therapeutic systems  
             """
 
         else:
             st.error("🔴 HIGH RISK")
             application = """
-            🚫 Suggested Application Pathways:
+            🚫 Suggested Applications:
             • Industrial catalysis  
             • Environmental remediation  
-            • External coatings with limited exposure  
-            • Restricted laboratory research use  
+            • Restricted laboratory use  
             """
 
         st.subheader("🏥 Recommended Application Pathways")
@@ -143,6 +168,11 @@ if uploaded_file:
 
         fig, ax = plt.subplots()
         ax.scatter(y_test, test_preds)
+        ax.plot(
+            [y_test.min(), y_test.max()],
+            [y_test.min(), y_test.max()],
+            linestyle="--"
+        )
         ax.set_xlabel("Actual Toxicity")
         ax.set_ylabel("Predicted Toxicity")
         ax.set_title("Actual vs Predicted")
